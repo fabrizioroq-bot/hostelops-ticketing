@@ -12,6 +12,7 @@ class UserRole(str, Enum):
     admin = "admin"
     supervisor = "supervisor"
     agent = "agent"
+    maintenance = "maintenance"
 
 
 class TicketChannel(str, Enum):
@@ -251,3 +252,63 @@ class DashboardFilters(BaseModel):
 # ---------------------------------------------------------------------------
 class ExportColumns(BaseModel):
     columns: list[str] | None = None  # None = all default columns
+
+
+# ---------------------------------------------------------------------------
+# Maintenance module — fully separate from the guest ticketing system above.
+# Its own enums (even though the values mirror TicketStatus/TicketPriority)
+# so the two domains never share a type and can evolve independently.
+# ---------------------------------------------------------------------------
+class MaintenanceStatus(str, Enum):
+    open = "open"
+    in_progress = "in_progress"
+    resolved = "resolved"
+    closed = "closed"
+
+
+class MaintenancePriority(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+    urgent = "urgent"
+
+
+class MaintenanceTicketCreate(BaseModel):
+    hostel_id: UUID
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str = Field(..., min_length=1, max_length=2000)
+    priority: MaintenancePriority = MaintenancePriority.medium
+
+
+class MaintenanceTicketUpdate(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, min_length=1, max_length=2000)
+    status: MaintenanceStatus | None = None
+    priority: MaintenancePriority | None = None
+
+
+class MaintenanceTicketOut(BaseModel):
+    id: UUID
+    hostel_id: UUID
+    title: str
+    description: str
+    status: MaintenanceStatus
+    priority: MaintenancePriority
+    created_by: UUID
+    created_at: datetime
+    resolved_at: datetime | None
+    updated_at: datetime
+
+
+class MaintenancePhotoOut(BaseModel):
+    id: UUID
+    maintenance_ticket_id: UUID
+    uploaded_by: UUID
+    created_at: datetime
+    url: str  # short-lived signed URL, generated per-request
+
+
+class MaintenanceTicketFilters(BaseModel):
+    hostel_id: UUID | None = None
+    status: MaintenanceStatus | None = None
+    priority: MaintenancePriority | None = None

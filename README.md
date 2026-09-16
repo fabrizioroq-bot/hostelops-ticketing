@@ -49,8 +49,9 @@ npm run dev
 ```
 
 Seeded login (dev/demo only — **rotate before production**):
-`admin@hostelops.example` / `HostelDemo#2026` (also `supervisor.west@…`,
-`agent.barcelona1@…`, etc. — see `supabase/migrations/0003_seed.sql`).
+`admin@hostelops.example` / `HostelDemo#2026` (also `m.chizzolini@rb-horeca.com`
+as a supervisor, `l.regordosa@rb-horeca.com` as a receptionist, `r.m@rb-horeca.com`
+as maintenance — full roster in `supabase/migrations/0008_replace_seed_data.sql`).
 
 ## Security model
 
@@ -107,6 +108,19 @@ backed by SQL aggregation functions
 (`supabase/migrations/0004_dashboard_functions.sql`) that run through the
 caller's own RLS-scoped connection, so results are automatically bounded
 by what that role is allowed to see.
+
+## Maintenance module
+
+A fully separate system from guest ticketing — own table
+(`maintenance_tickets`), own role (`maintenance`), own nav section, own
+Supabase Storage bucket for repair photos
+(`supabase/migrations/0006_maintenance_module.sql`). Admins have full
+access; supervisors are view-only, scoped to their hostels; the
+`maintenance` role can create/view/update, scoped to their hostels; agents
+have no access at all. Photo uploads go through the backend
+(`POST /maintenance-tickets/{id}/photos`), which writes to the private
+bucket via the service-role key and hands back short-lived signed URLs —
+the bucket itself is never public.
 
 ## Tests
 

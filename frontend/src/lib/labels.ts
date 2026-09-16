@@ -45,3 +45,9 @@ export const STATUS_LABEL: Record<TicketStatus, string> = {
 export function humanize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, " ");
 }
+
+// Maintenance module has its own status/priority types (see types/index.ts)
+// but happens to use the same display values/colors as guest tickets.
+export const MAINTENANCE_STATUS_COLOR: Record<string, string> = STATUS_COLOR;
+export const MAINTENANCE_STATUS_LABEL: Record<string, string> = STATUS_LABEL;
+export const MAINTENANCE_PRIORITY_COLOR: Record<string, string> = PRIORITY_COLOR;

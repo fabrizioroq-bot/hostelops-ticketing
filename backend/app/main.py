@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import auth, dashboards, dedup, exports, guests, hostels, pms, reports, tickets, users
+from app.api.routes import auth, dashboards, dedup, exports, guests, hostels, maintenance, pms, reports, tickets, users
 from app.core.config import get_settings
 from app.services.scheduler import start_scheduler, stop_scheduler
 
@@ -56,3 +56,4 @@ app.include_router(dashboards.router)
 app.include_router(exports.router)
 app.include_router(pms.router)
 app.include_router(reports.router)
+app.include_router(maintenance.router)

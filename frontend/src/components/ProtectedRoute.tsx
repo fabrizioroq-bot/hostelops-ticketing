@@ -31,7 +31,10 @@ export function ProtectedRoute({ allowedRoles }: { allowedRoles?: UserRole[] }) 
   }
 
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
-    return <Navigate to="/dashboard" replace />;
+    // "/dashboard" isn't a real route — go through "/" so
+    // DefaultLandingRedirect can send this role somewhere it's actually
+    // allowed (avoids landing on a 404 or bouncing between blocked pages).
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

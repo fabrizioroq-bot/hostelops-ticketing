@@ -34,8 +34,12 @@ the first admin user, and running the guest deduplication process.
    they appear in `supabase/migrations/`:
    1. `0001_init.sql` — schema, RLS policies, MDM tables
    2. `0002_auth_trigger.sql` — auto-creates `app_users` on signup
-   3. `0003_seed.sql` — 5 hostels, 10 users, 50 sample tickets
+   3. `0003_seed.sql` — original demo seed (5 hostels, 10 users, 50 tickets)
    4. `0004_dashboard_functions.sql` — dashboard aggregation RPC functions
+   5. `0005_new_enum_values.sql` — adds the `maintenance` role and related audit actions
+   6. `0006_maintenance_module.sql` — maintenance tickets/photos tables, RLS, storage bucket
+   7. `0007_scope_guest_tickets_from_maintenance_role.sql` — isolates the maintenance role from guest data
+   8. `0008_replace_seed_data.sql` — replaces the demo roster/hostels with the real rb-horeca ones (keeps the demo admin, deletes/re-seeds everything else, adds sample maintenance tickets)
 
    (Alternatively, install the Supabase CLI and run `supabase db push` from
    the repo root, pointed at your project.)
@@ -83,8 +87,9 @@ npm run dev
 Visit `http://localhost:5173` and log in with one of the seeded users, e.g.:
 
 - Admin: `admin@hostelops.example` / `HostelDemo#2026`
-- Supervisor: `supervisor.west@hostelops.example` / `HostelDemo#2026`
-- Agent: `agent.barcelona1@hostelops.example` / `HostelDemo#2026`
+- Supervisor: `m.chizzolini@rb-horeca.com` / `HostelDemo#2026` (also `m.zimmerman@…`, `m.duvet@…`, `m.jouvet@…`, `m.pool@…`)
+- Receptionist (agent role): `l.regordosa@rb-horeca.com` / `HostelDemo#2026` (also `j.damian@…`)
+- Maintenance: `r.m@rb-horeca.com` / `HostelDemo#2026`
 
 ## 5. Deploying to Vercel + Supabase (recommended path)
 
@@ -180,7 +185,25 @@ time. To test it immediately without waiting for Monday, call
 `GET /reports/weekly.pdf` (downloads the PDF directly) as an admin or
 supervisor.
 
-## 10. Backups
+## 10. Maintenance module
+
+A separate module from the guest ticketing system — its own table
+(`maintenance_tickets`), its own role (`maintenance`), and its own Supabase
+Storage bucket (`maintenance-photos`, created by migration `0006`) for
+repair photos. Access:
+
+- **admin**: full access, all hostels.
+- **supervisor**: view-only, scoped to their assigned hostels.
+- **maintenance role**: create/view/update, scoped to their assigned hostels.
+- **agent**: no access at all.
+
+No extra environment variables are needed — photo uploads go through the
+backend (`POST /maintenance-tickets/{id}/photos`, multipart), which writes
+to the bucket using the service-role key and returns short-lived signed
+URLs for display, so the bucket itself stays private with no public/anon
+access.
+
+## 11. Backups
 
 Supabase Pro and above includes daily automated backups with
 point-in-time recovery configurable in **Project Settings → Backups**. On

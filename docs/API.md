@@ -96,3 +96,18 @@ count, and filters used.
 | Method | Path | Roles | Description |
 |---|---|---|---|
 | GET | `/reports/weekly.pdf` | admin, supervisor | On-demand weekly summary PDF (same content as the scheduled email) |
+
+## Maintenance
+
+Fully separate from the guest-ticketing endpoints above — a different
+table, different roles, different storage bucket. Agents have no access
+at all; supervisors are view-only.
+
+| Method | Path | Roles | Description |
+|---|---|---|---|
+| POST | `/maintenance-tickets` | admin, maintenance | Create a maintenance ticket for one of your assigned hostels |
+| GET | `/maintenance-tickets` | admin, supervisor, maintenance | List; query params: `hostel_id`, `status_`, `priority` |
+| GET | `/maintenance-tickets/{id}` | admin, supervisor, maintenance | Get one ticket |
+| PATCH | `/maintenance-tickets/{id}` | admin, maintenance | Update title/description/status/priority |
+| POST | `/maintenance-tickets/{id}/photos` | admin, maintenance | Upload one photo (multipart `file`; JPEG/PNG/WebP/HEIC, max 10MB) — call once per photo for multiple |
+| GET | `/maintenance-tickets/{id}/photos` | admin, supervisor, maintenance | List photos with short-lived signed URLs |

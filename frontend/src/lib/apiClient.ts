@@ -55,6 +55,30 @@ export const api = {
     request<T>(path, { method: "PATCH", body: body !== undefined ? JSON.stringify(body) : undefined }),
 };
 
+export async function uploadFile<T>(path: string, file: File): Promise<T> {
+  const headers = await authHeaders();
+  const formData = new FormData();
+  formData.append("file", file);
+  // Deliberately no Content-Type header — the browser sets
+  // multipart/form-data with the correct boundary itself.
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const body = await response.json();
+      detail = body.detail || detail;
+    } catch {
+      // response had no JSON body
+    }
+    throw new ApiError(response.status, detail);
+  }
+  return response.json() as Promise<T>;
+}
+
 export async function downloadFile(path: string, filename: string): Promise<void> {
   const headers = await authHeaders();
   const response = await fetch(`${API_BASE_URL}${path}`, { headers });

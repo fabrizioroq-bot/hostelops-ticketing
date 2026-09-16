@@ -1,6 +1,6 @@
 // Mirrors backend/app/models/schemas.py — keep in sync.
 
-export type UserRole = "admin" | "supervisor" | "agent";
+export type UserRole = "admin" | "supervisor" | "agent" | "maintenance";
 
 export type TicketChannel = "call" | "whatsapp" | "email" | "reception" | "other";
 
@@ -121,4 +121,31 @@ export interface DashboardOverview {
   today: number;
   this_week: number;
   this_month: number;
+}
+
+// -----------------------------------------------------------------------
+// Maintenance module — separate from the guest-ticketing types above.
+// -----------------------------------------------------------------------
+export type MaintenanceStatus = "open" | "in_progress" | "resolved" | "closed";
+export type MaintenancePriority = "low" | "medium" | "high" | "urgent";
+
+export interface MaintenanceTicket {
+  id: string;
+  hostel_id: string;
+  title: string;
+  description: string;
+  status: MaintenanceStatus;
+  priority: MaintenancePriority;
+  created_by: string;
+  created_at: string;
+  resolved_at: string | null;
+  updated_at: string;
+}
+
+export interface MaintenancePhoto {
+  id: string;
+  maintenance_ticket_id: string;
+  uploaded_by: string;
+  created_at: string;
+  url: string;
 }
