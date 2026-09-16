@@ -1,0 +1,21 @@
+# Alternative to Vercel + Supabase Edge hosting: run the backend and a
+# static build of the frontend together on a single VPS. Supabase itself
+# (Postgres + Auth) is still a hosted or self-hosted Supabase project —
+# this compose file does not run Supabase locally.
+services:
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
