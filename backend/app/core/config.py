@@ -16,7 +16,10 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_anon_key: str
     supabase_service_role_key: str
-    supabase_jwt_secret: str
+    # Only required for projects still on the legacy HS256 shared-secret
+    # signing scheme. Newer projects use ES256/RS256 verified via JWKS
+    # instead (see app/core/security.py) and don't need this set.
+    supabase_jwt_secret: str | None = None
 
     # CORS
     cors_origins: str = "http://localhost:5173"

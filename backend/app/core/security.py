@@ -4,10 +4,20 @@ Login itself happens client-side via the Supabase Auth JS SDK (email +
 password against Supabase's GoTrue service, which stores bcrypt password
 hashes and issues short-lived JWTs). The backend never sees a password — it
 only ever verifies the resulting JWT on each request.
+
+Supabase projects sign access tokens one of two ways depending on the
+project's Auth key configuration:
+  - Legacy: HS256, shared secret (`SUPABASE_JWT_SECRET`).
+  - Current default for new projects: ES256/RS256 with a rotating key pair,
+    verified against the project's public JWKS endpoint instead of a shared
+    secret. Newer accounts don't expose a usable HS256 secret at all, so we
+    support both and pick the right one per-token based on its `alg` header.
 """
+import time
 from dataclasses import dataclass
 from uuid import UUID
 
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt, JWTError
@@ -16,6 +26,9 @@ from app.core.config import get_settings
 from app.db.supabase_client import get_service_client, get_user_client
 
 _bearer_scheme = HTTPBearer(auto_error=True)
+
+_JWKS_TTL_SECONDS = 3600
+_jwks_cache: dict = {"keys": [], "fetched_at": 0.0}
 
 
 @dataclass
@@ -29,15 +42,40 @@ class CurrentUser:
     access_token: str
 
 
+def _fetch_jwks(force: bool = False) -> list[dict]:
+    settings = get_settings()
+    now = time.time()
+    if force or not _jwks_cache["keys"] or now - _jwks_cache["fetched_at"] > _JWKS_TTL_SECONDS:
+        resp = httpx.get(f"{settings.supabase_url}/auth/v1/.well-known/jwks.json", timeout=10)
+        resp.raise_for_status()
+        _jwks_cache["keys"] = resp.json().get("keys", [])
+        _jwks_cache["fetched_at"] = now
+    return _jwks_cache["keys"]
+
+
 def _decode_token(token: str) -> dict:
     settings = get_settings()
     try:
-        return jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
+        header = jwt.get_unverified_header(token)
+        alg = header.get("alg")
+
+        if alg == "HS256":
+            return jwt.decode(
+                token, settings.supabase_jwt_secret, algorithms=["HS256"], audience="authenticated"
+            )
+
+        # ES256 / RS256 — verify against the project's public JWKS.
+        kid = header.get("kid")
+        keys = _fetch_jwks()
+        matched = next((k for k in keys if k.get("kid") == kid), None)
+        if matched is None:
+            # Key may have rotated since our last fetch — refresh once and retry.
+            keys = _fetch_jwks(force=True)
+            matched = next((k for k in keys if k.get("kid") == kid), None)
+        if matched is None:
+            raise JWTError(f"No matching JWKS key found for kid={kid!r}.")
+
+        return jwt.decode(token, matched, algorithms=[alg], audience="authenticated")
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
